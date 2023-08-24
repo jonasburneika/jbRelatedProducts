@@ -1,5 +1,8 @@
 <?php
 
+use PrestaShop\PrestaShop\Adapter\Image\ImageRetriever;
+use PrestaShop\PrestaShop\Adapter\Product\PriceFormatter;
+use PrestaShop\PrestaShop\Adapter\Product\ProductColorsRetriever;
 use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
 
 if (!defined('_PS_VERSION_')) {
@@ -10,7 +13,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
 {
     protected $html;
 
-    protected $templateFile;
+    protected $templateLocation;
     private $hooks = [
         'displayRelatedProducts' => [],
         'displayHeader' => [
@@ -51,7 +54,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
         $this->description = $this->trans('Add a block on every product page that displays similar products based on configurations', [], 'Modules.JbRelatedProducts.Admin');
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
 
-        $this->templateFile = 'module:jbrelatedproducts/views/templates/hook/displayRelatedProducts.tpl';
+        $this->templateLocation = 'module:jbrelatedproducts/views/templates/hook/';
     }
 
 
@@ -85,7 +88,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
     {
         $result = true;
         foreach ($this->configurations as $name => $value) {
-            if($formSubmission){
+            if ($formSubmission) {
                 $value = Tools::getValue($this->prefix . $name);
             }
             $result &= Configuration::updateValue($this->prefix . $name, $value);
@@ -266,7 +269,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
                     ],
                     [
                         'type' => 'switch',
-                        'label' => $this->trans('Same supplier', [], 'Modules.JbRelatedProducts.Admin'),
+                        'label' => $this->trans('Same Supplier', [], 'Modules.JbRelatedProducts.Admin'),
                         'desc' => $this->trans('Display products, which are supplied by same Supplier.', [], 'Modules.JbRelatedProducts.Admin'),
                         'name' => $this->prefix . 'RELATION_SUPPLIERS',
                         'values' => [
@@ -326,27 +329,209 @@ class JbRelatedProducts extends Module implements WidgetInterface
 
     public function setConfigurationValues()
     {
-        $productAmount = (int) Tools::getValue($this->prefix . 'PRODUCTS_QUANTITY');
+        $productAmount = (int)Tools::getValue($this->prefix . 'PRODUCTS_QUANTITY');
         if ($productAmount <= 0) {
             $this->html .= $this->displayError($this->trans('Invalid value for display price.', [], 'Modules.JbRelatedProducts.Admin'));
-            $this->_clearCache($this->templateFile);
+            $this->_clearCache($this->templateLocation);
             return;
         }
-        if($this->setConfigurations(true)) {
-            $this->_clearCache($this->templateFile);
+        if ($this->setConfigurations(true)) {
+            $this->_clearCache($this->templateLocation);
             $this->html .= $this->displayConfirmation($this->trans('The settings have been updated.', [], 'Admin.Notifications.Success'));
         }
     }
 
+    private function getWidgetData($hookName, $configuration)
+    {
+        if (!empty($configuration['product'])) {
+            $product = $configuration['product'];
+            if ($product instanceof Product) {
+                $product = (array)$product;
+                $product['id_product'] = $product['id'];
+            }
+            $id_product = $product['id_product'];
+        }
+
+        if(empty($id_product)){
+            $id_product = Tools::getValue('id_product');
+        }
+        if ($id_product) {
+            return [
+                'id_product' => $id_product,
+                'cache_id' => $this->getCacheId($this->name . '|' . $id_product .'|'. $hookName),
+            ];
+        }
+
+        return false;
+    }
+
+    private function getRelatedProducts($idProduct)
+    {
+        $sql = new DbQuery();
+        $sql->select('p.`id_product`');
+        $sql->from('product', 'p');
+        $sql->join(Shop::addSqlAssociation('product', 'p'));
+        $this->setResultLimit($sql);
+        $this->setWhereCategory($sql, $idProduct);
+        $this->setWhereDefaultCategory($sql, $idProduct);
+        $this->setWhereManufacturer($sql, $idProduct);
+        $this->setWhereSupplier($sql, $idProduct);
+        $this->setWhereFeatures($sql, $idProduct);
+        $sql->where('p.`id_product` != '.$idProduct);
+        $sql->groupBy('p.`id_product`');
+
+        $result = Db::getInstance()->executeS($sql);
+
+        if (!$result) {
+            return false;
+        }
+        return $this->getAssembledProducts($result);
+    }
+
+    private function setResultLimit(&$sql){
+
+        $limit = (int) Configuration::get($this->prefix.'PRODUCTS_QUANTITY');
+
+        if ($limit) {
+            $sql->limit($limit);
+        }
+    }
+
+
+    private function setWhereCategory(&$sql, $idProduct){
+
+        $shareCategory = (bool) Configuration::get($this->prefix.'RELATION_CATEGORY');
+
+        if ($shareCategory) {
+            $categories = Product::getProductCategories($idProduct);
+            if (!empty($categories)){
+                $sql->join('JOIN `'._DB_PREFIX_.'category_product` cp ON cp.`id_product` = p.`id_product`');
+                $sql->where('cp.`id_category` in ('.implode(',', $categories).')');
+            }
+        }
+    }
+
+    private function setWhereDefaultCategory(&$sql, $idProduct){
+
+        $shareDefaultCategory = (bool) Configuration::get($this->prefix.'RELATION_DEFAULT_CATEGORY');
+
+        if ($shareDefaultCategory) {
+            $sql->join('JOIN `'._DB_PREFIX_.'product` pc ON p.`id_category_default` = pc.`id_category_default`');
+            $sql->where('pc.`id_product` = '.(int)$idProduct);
+        }
+    }
+
+    private function setWhereManufacturer(&$sql, $idProduct){
+
+        $shareManufacturer = (bool) Configuration::get($this->prefix.'RELATION_MANUFACTURER');
+
+        if ($shareManufacturer) {
+            $sql->join('JOIN `'._DB_PREFIX_.'product` pm ON p.`id_manufacturer` = pm.`id_manufacturer`');
+            $sql->where('pm.`id_product` = '.(int)$idProduct.' and pm.`id_manufacturer` != "0"');
+        }
+    }
+
+    private function setWhereSupplier(&$sql, $idProduct){
+
+        $shareSupplier = (bool) Configuration::get($this->prefix.'RELATION_SUPPLIERS');
+
+        if ($shareSupplier) {
+            $sql->join('JOIN `'._DB_PREFIX_.'product` psu ON p.`id_supplier` = psu.`id_supplier`');
+            $sql->where('psu.`id_product` = '.(int)$idProduct.' and psu.`id_supplier` != "0"');
+        }
+    }
+
+    private function setWhereFeatures(&$sql, $idProduct){
+
+        $shareFeatures = (bool) Configuration::get($this->prefix.'RELATION_FEATURES');
+
+        if ($shareFeatures) {
+            $featureSql = new DbQuery();
+            $featureSql->select('fp2.id_product');
+            $featureSql->FROM('feature_product', 'fp1');
+            $featureSql->join('JOIN `'._DB_PREFIX_.'feature_product` fp2 ON fp2.`id_feature_value` = fp1.`id_feature_value`');
+            $featureSql->where('fp1.`id_product` = '.(int)$idProduct);
+
+            $sql->where('p.`id_product` in ('.$featureSql->__toString().')');
+        }
+    }
+
+    private function getAssembledProducts($products){
+        $presenter = new \PrestaShop\PrestaShop\Adapter\Presenter\Product\ProductListingPresenter(
+            new ImageRetriever(
+                $this->context->link
+            ),
+            $this->context->link,
+            new PriceFormatter(),
+            new ProductColorsRetriever(),
+            $this->context->getTranslator()
+        );
+
+
+        $products_for_template = [];
+        $assembler = new ProductAssembler($this->context);
+        $presenterFactory = new ProductPresenterFactory($this->context);
+        $presentationSettings = $presenterFactory->getPresentationSettings();
+
+
+        foreach ($products as $rawProduct) {
+            $products_for_template[] = $presenter->present(
+                $presentationSettings,
+                $assembler->assembleProduct($rawProduct),
+                $this->context->language
+            );
+        }
+
+        return $products_for_template;
+    }
+
+    private function getTemplate($hookName){
+        switch ($hookName) {
+            case 'displayReassurance':
+                return $this->templateLocation . $hookName . '.tpl';
+            case 'displayRelatedProducts':
+            case 'displayFooterProduct':
+            default:
+                return $this->templateLocation .'displayRelatedProducts.tpl';
+        }
+
+    }
 
     public function renderWidget($hookName, array $configuration)
     {
-        // TODO: Implement renderWidget() method.
+        $params = $this->getWidgetData($hookName, $configuration);
+
+        if ($params) {
+            if (!$this->isCached($this->getTemplate($hookName), $params['cache_id'])) {
+                $variables = $this->getWidgetVariables($hookName, $configuration);
+
+                if (empty($variables)) {
+                    return false;
+                }
+
+                $this->smarty->assign($variables);
+            }
+
+            return $this->fetch($this->getTemplate($hookName), $params['cache_id']);
+        }
+
+        return false;
     }
 
     public function getWidgetVariables($hookName, array $configuration)
     {
-        // TODO: Implement getWidgetVariables() method.
+        $params = $this->getWidgetData($hookName, $configuration);
+        if ($params) {
+            $products = $this->getRelatedProducts($params['id_product']);
+
+            if (!empty($products)) {
+                return [
+                    'products' => $products,
+                ];
+            }
+        }
+
+        return false;
     }
 
 }
