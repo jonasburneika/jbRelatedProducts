@@ -8,7 +8,9 @@ if (!defined('_PS_VERSION_')) {
 
 class JbRelatedProducts extends Module implements WidgetInterface
 {
+    protected $html;
 
+    protected $templateFile;
     private $hooks = [
         'displayRelatedProducts' => [],
         'displayHeader' => [
@@ -76,16 +78,19 @@ class JbRelatedProducts extends Module implements WidgetInterface
     }
 
     /**
-     * Setting predefined Configuration values
+     * Setting predefined or form submitted Configuration values
      * @return int|true
      */
-    private function setConfigurations()
+    private function setConfigurations($formSubmission = false)
     {
         $result = true;
-        foreach ($this->configurations as $name => $value){
-            $result &= Configuration::updateValue($this->prefix.$name, $value);
+        foreach ($this->configurations as $name => $value) {
+            if($formSubmission){
+                $value = Tools::getValue($this->prefix . $name);
+            }
+            $result &= Configuration::updateValue($this->prefix . $name, $value);
         }
-        if (!$result){
+        if (!$result && !$formSubmission) {
             $this->_errors[] = $this->trans('Unable to setup module configurations', [], 'Modules.JbRelatedProducts.Admin');
         }
         return $result;
@@ -94,8 +99,8 @@ class JbRelatedProducts extends Module implements WidgetInterface
     private function deleteConfigurations()
     {
         $result = true;
-        foreach ($this->configurations as $name => $value){
-            $result &= Configuration::deleteByName($this->prefix.$name);
+        foreach ($this->configurations as $name => $value) {
+            $result &= Configuration::deleteByName($this->prefix . $name);
         }
         return $result;
     }
@@ -155,6 +160,184 @@ class JbRelatedProducts extends Module implements WidgetInterface
         return array_diff($allExceptions, $allowedExceptions);
 
     }
+
+    public function getContent()
+    {
+        $this->html = '';
+
+        if (Tools::isSubmit('submitRelatedProductSettings')) {
+            $this->setConfigurationValues();
+        }
+
+        $this->html .= $this->renderForm();
+
+        return $this->html;
+    }
+
+
+    public function renderForm()
+    {
+        $fields_form = [
+            'form' => [
+                'legend' => [
+                    'title' => $this->trans('Settings', [], 'Admin.Global'),
+                    'icon' => 'icon-cogs',
+                ],
+                'input' => [
+                    [
+                        'type' => 'text',
+                        'label' => $this->trans('Amount of products', [], 'Modules.JbRelatedProducts.Admin'),
+                        'desc' => $this->trans('Number of related product to display', [], 'Modules.JbRelatedProducts.Admin'),
+                        'name' => $this->prefix . 'PRODUCTS_QUANTITY',
+                        'class' => 'fixed-width-xs',
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Same Category', [], 'Modules.JbRelatedProducts.Admin'),
+                        'desc' => $this->trans('Display products, which shares at least one category.', [], 'Modules.JbRelatedProducts.Admin'),
+                        'name' => $this->prefix . 'RELATION_CATEGORY',
+                        'values' => [
+                            [
+                                'id' => 'active_on',
+                                'value' => 1,
+                                'label' => $this->trans('Enabled', [], 'Admin.Global'),
+                            ],
+                            [
+                                'id' => 'active_off',
+                                'value' => 0,
+                                'label' => $this->trans('Disabled', [], 'Admin.Global'),
+                            ],
+                        ],
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Same Default Category', [], 'Modules.JbRelatedProducts.Admin'),
+                        'desc' => $this->trans('Display products, which are from same default category.', [], 'Modules.JbRelatedProducts.Admin'),
+                        'name' => $this->prefix . 'RELATION_DEFAULT_CATEGORY',
+                        'values' => [
+                            [
+                                'id' => 'active_on',
+                                'value' => 1,
+                                'label' => $this->trans('Enabled', [], 'Admin.Global'),
+                            ],
+                            [
+                                'id' => 'active_off',
+                                'value' => 0,
+                                'label' => $this->trans('Disabled', [], 'Admin.Global'),
+                            ],
+                        ],
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Same Features', [], 'Modules.JbRelatedProducts.Admin'),
+                        'desc' => $this->trans('Display products, which has at least one matching feature.', [], 'Modules.JbRelatedProducts.Admin'),
+                        'name' => $this->prefix . 'RELATION_FEATURES',
+                        'values' => [
+                            [
+                                'id' => 'active_on',
+                                'value' => 1,
+                                'label' => $this->trans('Enabled', [], 'Admin.Global'),
+                            ],
+                            [
+                                'id' => 'active_off',
+                                'value' => 0,
+                                'label' => $this->trans('Disabled', [], 'Admin.Global'),
+                            ],
+                        ],
+
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Same Manufacturer', [], 'Modules.JbRelatedProducts.Admin'),
+                        'desc' => $this->trans('Display products, which are from same manufacturer.', [], 'Modules.JbRelatedProducts.Admin'),
+                        'name' => $this->prefix . 'RELATION_MANUFACTURER',
+                        'values' => [
+                            [
+                                'id' => 'active_on',
+                                'value' => 1,
+                                'label' => $this->trans('Enabled', [], 'Admin.Global'),
+                            ],
+                            [
+                                'id' => 'active_off',
+                                'value' => 0,
+                                'label' => $this->trans('Disabled', [], 'Admin.Global'),
+                            ],
+                        ],
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Same supplier', [], 'Modules.JbRelatedProducts.Admin'),
+                        'desc' => $this->trans('Display products, which are supplied by same Supplier.', [], 'Modules.JbRelatedProducts.Admin'),
+                        'name' => $this->prefix . 'RELATION_SUPPLIERS',
+                        'values' => [
+                            [
+                                'id' => 'active_on',
+                                'value' => 1,
+                                'label' => $this->trans('Enabled', [], 'Admin.Global'),
+                            ],
+                            [
+                                'id' => 'active_off',
+                                'value' => 0,
+                                'label' => $this->trans('Disabled', [], 'Admin.Global'),
+                            ],
+                        ],
+                    ],
+
+                ],
+                'submit' => [
+                    'title' => $this->trans('Save', [], 'Admin.Actions'),
+                ],
+            ],
+        ];
+
+        $lang = new Language((int)Configuration::get('PS_LANG_DEFAULT'));
+
+        $helper = new HelperForm();
+        $helper->show_toolbar = false;
+        $helper->table = $this->table;
+        $helper->default_form_language = $lang->id;
+        $helper->allow_employee_form_lang = Configuration::get('PS_BO_ALLOW_EMPLOYEE_FORM_LANG') ? Configuration::get(
+            'PS_BO_ALLOW_EMPLOYEE_FORM_LANG'
+        ) : 0;
+        $helper->identifier = $this->identifier;
+        $helper->submit_action = 'submitRelatedProductSettings';
+        $helper->currentIndex = $this->context->link->getAdminLink(
+                'AdminModules',
+                false
+            ) . '&configure=' . $this->name . '&tab_module=' . $this->tab . '&module_name=' . $this->name;
+        $helper->token = Tools::getAdminTokenLite('AdminModules');
+        $helper->tpl_vars = [
+            'fields_value' => $this->getConfigFieldsValues(),
+            'languages' => $this->context->controller->getLanguages(),
+            'id_language' => $this->context->language->id,
+        ];
+
+        return $helper->generateForm([$fields_form]);
+    }
+
+    public function getConfigFieldsValues()
+    {
+        $values = [];
+        foreach ($this->configurations as $name => $value) {
+            $values[$this->prefix . $name] = Configuration::get($this->prefix . $name, null, null, null, $value);
+        }
+        return $values;
+    }
+
+    public function setConfigurationValues()
+    {
+        $productAmount = (int) Tools::getValue($this->prefix . 'PRODUCTS_QUANTITY');
+        if ($productAmount <= 0) {
+            $this->html .= $this->displayError($this->trans('Invalid value for display price.', [], 'Modules.JbRelatedProducts.Admin'));
+            $this->_clearCache($this->templateFile);
+            return;
+        }
+        if($this->setConfigurations(true)) {
+            $this->_clearCache($this->templateFile);
+            $this->html .= $this->displayConfirmation($this->trans('The settings have been updated.', [], 'Admin.Notifications.Success'));
+        }
+    }
+
 
     public function renderWidget($hookName, array $configuration)
     {
