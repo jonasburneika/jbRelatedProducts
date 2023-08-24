@@ -25,6 +25,16 @@ class JbRelatedProducts extends Module implements WidgetInterface
         ]
     ];
 
+    private $prefix = 'JB_RELATED_PRODUCTS_';
+    private $configurations = [
+        'PRODUCTS_QUANTITY' => 8,
+        'RELATION_CATEGORY' => 0,
+        'RELATION_DEFAULT_CATEGORY' => 1,
+        'RELATION_FEATURES' => 0,
+        'RELATION_MANUFACTURER' => 0,
+        'RELATION_SUPPLIERS' => 0,
+    ];
+
     public function __construct()
     {
         $this->name = 'jbrelatedproducts';
@@ -45,13 +55,15 @@ class JbRelatedProducts extends Module implements WidgetInterface
 
     public function install()
     {
-        return parent::install() && $this->setModuleHooks();
+        return parent::install() &&
+            $this->setModuleHooks() &&
+            $this->setConfigurations();
     }
 
 
     public function uninstall()
     {
-        return parent::uninstall();
+        return parent::uninstall() && $this->deleteConfigurations();
     }
 
     private function setModuleHooks()
@@ -59,6 +71,31 @@ class JbRelatedProducts extends Module implements WidgetInterface
         $result = true;
         foreach ($this->hooks as $hook => $parameters) {
             $result &= $this->registerHook($hook, null, $parameters);
+        }
+        return $result;
+    }
+
+    /**
+     * Setting predefined Configuration values
+     * @return int|true
+     */
+    private function setConfigurations()
+    {
+        $result = true;
+        foreach ($this->configurations as $name => $value){
+            $result &= Configuration::updateValue($this->prefix.$name, $value);
+        }
+        if (!$result){
+            $this->_errors[] = $this->trans('Unable to setup module configurations', [], 'Modules.JbRelatedProducts.Admin');
+        }
+        return $result;
+    }
+
+    private function deleteConfigurations()
+    {
+        $result = true;
+        foreach ($this->configurations as $name => $value){
+            $result &= Configuration::deleteByName($this->prefix.$name);
         }
         return $result;
     }
