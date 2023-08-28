@@ -112,7 +112,14 @@ class AdminJbRelatedProductsSettingsController extends ModuleAdminController
                 'submit' => array('title' => $this->l('Save')),
             ),
         );
+
+        $this->page_header_toolbar_btn['instructions'] = array(
+            'href' => 'https://r.mtdv.me/videos/F0hYupeByo',
+            'desc' => $this->l('Instructions'),
+            'icon' => 'icon icon-book',
+            'target' => '_blank'
+        );
+
     }
 
-//    public function sa
 }

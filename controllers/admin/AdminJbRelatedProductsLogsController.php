@@ -101,6 +101,7 @@ class AdminJbRelatedProductsLogsController extends ModuleAdminController
             'href' => 'https://r.mtdv.me/videos/F0hYupeByo',
             'desc' => $this->l('Instructions'),
             'icon' => 'icon icon-book',
+            'target' => '_blank'
         );
 
         $this->page_header_toolbar_btn['delete'] = array(

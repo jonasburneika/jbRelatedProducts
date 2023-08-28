@@ -88,6 +88,13 @@ class AdminJbRelatedProductsRelationShipsController extends ModuleAdminControlle
 
         $this->actions = array('remove');
 
+        $this->page_header_toolbar_btn['instructions'] = array(
+            'href' => 'https://r.mtdv.me/videos/F0hYupeByo',
+            'desc' => $this->l('Instructions'),
+            'icon' => 'icon icon-book',
+            'target' => '_blank'
+        );
+
         $this->bulk_actions = array(
             'delete' => array(
                 'text' => $this->l('Delete selected'),

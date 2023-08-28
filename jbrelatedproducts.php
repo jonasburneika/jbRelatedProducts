@@ -32,7 +32,9 @@ class JbRelatedProducts extends Module implements WidgetInterface
         'displayFooterProduct' => [
             'position' => 1
         ],
-        'displayAdminProductsOptionsStepBottom' => []
+        'displayAdminProductsOptionsStepBottom' => [],
+        'displayAdminProductsOptionsStepTop' => [],
+        'DisplayAdminProductsExtra' => []
     ];
 
     public $prefix = 'JB_RELATED_PRODUCTS_';
@@ -135,7 +137,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
         return true;
     }
 
-    private function setModuleHooks()
+    public function setModuleHooks()
     {
         $result = true;
         foreach ($this->hooks as $hook => $parameters) {
