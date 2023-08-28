@@ -49,6 +49,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
 
         $this->bootstrap = true;
         parent::__construct();
+        $this->loadFiles();
 
         $this->displayName = $this->trans('Related product products', [], 'Modules.JbRelatedProducts.Admin');
         $this->description = $this->trans('Add a block on every product page that displays similar products based on configurations', [], 'Modules.JbRelatedProducts.Admin');
@@ -62,7 +63,8 @@ class JbRelatedProducts extends Module implements WidgetInterface
     {
         return parent::install() &&
             $this->setModuleHooks() &&
-            $this->setConfigurations();
+            $this->setConfigurations() &&
+            $this->createModuleDatabaseTables();
     }
 
 
@@ -532,6 +534,30 @@ class JbRelatedProducts extends Module implements WidgetInterface
         }
 
         return false;
+    }
+
+    private function loadFiles()
+    {
+        $classesDir = dirname(__FILE__).'/classes/';
+        $classes = glob($classesDir.'*.php');
+
+        foreach ($classes as $class) {
+            if ($class != $classesDir.'index.php') {
+                require_once($class);
+            }
+        }
+    }
+
+    public function createModuleDatabaseTables()
+    {
+        $installer = new JbRelatedProductsInstaller();
+        return $installer->install();
+    }
+
+    public function deleteModuleDatabaseTables()
+    {
+        $installer = new JbRelatedProductsInstaller();
+        return $installer->uninstall();
     }
 
 }
