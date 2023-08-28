@@ -79,6 +79,9 @@ class JbRelatedProducts extends Module implements WidgetInterface
         foreach ($this->hooks as $hook => $parameters) {
             $result &= $this->registerHook($hook, null, $parameters);
         }
+        if (!$result) {
+            $this->_errors[] = $this->trans('Unable to setup module hooks', [], 'Modules.JbRelatedProducts.Admin');
+        }
         return $result;
     }
 
@@ -551,13 +554,29 @@ class JbRelatedProducts extends Module implements WidgetInterface
     public function createModuleDatabaseTables()
     {
         $installer = new JbRelatedProductsInstaller();
-        return $installer->install();
+        $result = $installer->install();
+        if (!$result) {
+            $this->_errors[] = $this->trans(
+                'Unable to create DataBases',
+                [],
+                'Modules.JbRelatedProducts.Admin'
+            );
+        }
+        return $result;
     }
 
     public function deleteModuleDatabaseTables()
     {
         $installer = new JbRelatedProductsInstaller();
-        return $installer->uninstall();
+        $result = $installer->uninstall();
+        if (!$result) {
+            $this->_errors[] = $this->trans(
+                'Unable to delete DataBases',
+                [],
+                'Modules.JbRelatedProducts.Admin'
+            );
+        }
+        return $result;
     }
 
 }
