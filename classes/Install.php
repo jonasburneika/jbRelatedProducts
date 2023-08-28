@@ -9,14 +9,15 @@ class JbRelatedProductsInstaller
         $queries[] = '
             CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'jb_relprod_log` (
                 `id_jb_relprod_log` INT(11) NOT NULL AUTO_INCREMENT,
-                `id_product` int(10) unsigned NOT NULL,
+                `id_product` int(10) unsigned DEFAULT NULL,
                 `type` INT(11) NOT NULL,
                 `message` TEXT NOT NULL,
+                `id_employee` int(10) unsigned NOT NULL,
                 `date_add` DATETIME NOT NULL,
+                `date_upd` DATETIME NOT NULL,
             PRIMARY KEY (`id_jb_relprod_log`),
             INDEX(`id_product`, `type`),
-            FOREIGN KEY (`id_product`) REFERENCES  `' . _DB_PREFIX_ . 'product`(`id_product`)
-            ON DELETE CASCADE ON UPDATE NO ACTION
+            FOREIGN KEY (`id_employee`) REFERENCES  `' . _DB_PREFIX_ . 'employee`(`id_employee`) ON DELETE CASCADE ON UPDATE NO ACTION
             ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;';
 
         $queries[] = '

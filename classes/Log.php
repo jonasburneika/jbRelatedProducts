@@ -18,6 +18,8 @@ class JbRelatedProductsLog extends ObjectModel
 
     public $message;
 
+    public $id_employee;
+
     public $date_add;
 
     public $date_upd;
@@ -29,69 +31,48 @@ class JbRelatedProductsLog extends ObjectModel
             'id_product' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedInt'),
             'type' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedInt'),
             'message' => array('type' => self::TYPE_HTML, 'validate' => 'isCleanHtml'),
+            'id_employee' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedInt'),
             'date_add' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
             'date_upd' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
         ),
     );
 
-    public function __construct($id = null, $id_lang = null, $id_shop = null, $translator = null)
+    public function __construct($id = NULL, $id_lang = NULL, $id_shop = NULL, $translator = NULL)
     {
         parent::__construct($id, $id_lang, $id_shop, $translator);
     }
 
-    public function install(): bool
-    {
-
-        return Db::getInstance()->execute('
-            CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'jb_relprod_log` (
-                `id_jb_relprod_log` INT(11) NOT NULL AUTO_INCREMENT,
-                `id_product` INT(11) NOT NULL,
-                `type` INT(11) NOT NULL,
-                `message` TEXT NOT NULL,
-                `date_add` DATETIME NOT NULL,
-            PRIMARY KEY (`id_jb_relprod_log`),
-            INDEX(`id_product`, `type`),
-            FOREIGN KEY (`id_product`) REFERENCES  `' . _DB_PREFIX_ . 'product`(`id_product`)
-            ON DELETE CASCADE ON UPDATE NO ACTION
-            ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8;'
-        );
-    }
-
-    public function uninstall()
-    {
-        return Db::getInstance()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'jb_relprod_log`;');
-    }
-
-    public static function logSuccess($message, $idProduct)
+    public static function logSuccess($message, $idProduct = NULL)
     {
         self::logMessage($message, $idProduct, self::TYPE_SUCCESS);
     }
 
-    public static function logError($message, $idProduct)
+    public static function logError($message, $idProduct = NULL)
     {
         self::logMessage($message, $idProduct, self::TYPE_ERROR);
     }
 
-    public static function logWarning($message, $idProduct)
+    public static function logWarning($message, $idProduct = NULL)
     {
         self::logMessage($message, $idProduct, self::TYPE_WARNING);
     }
 
-    public static function logInfo($message, $idProduct)
+    public static function logInfo($message, $idProduct = NULL)
     {
         self::logMessage($message, $idProduct);
     }
 
     private static function logMessage($message, $idProduct, $type = self::TYPE_INFO)
     {
+        $context = Context::getContext();
         $log = new self();
-        $log->id_product = (int)$idProduct;
+        $log->id_product = $idProduct;
         $log->type = (int)$type;
         $log->message = $message;
+        $log->id_employee = $context->employee->id;
         try {
             $log->save();
         } catch (Exception $e) {
-            $context = Context::getContext();
             $translator = $context->getTranslator();
             PrestaShopLogger::addLog(
                 $translator->trans(
@@ -100,7 +81,7 @@ class JbRelatedProductsLog extends ObjectModel
                     'Modules.JbRelatedProducts.Log'
                 ),
                 1,
-                null,
+                NULL,
                 '',
                 0,
                 true,
@@ -109,12 +90,11 @@ class JbRelatedProductsLog extends ObjectModel
         }
     }
 
-    public static function deleteLogs($all = false): bool
+    public static function deleteLogs($all = false, $old = 31): bool
     {
-        $days = 31;
-        $date = date('Y-m-d H:i:s', strtotime('-' . (int)$days . ' days'));
+        $date = date('Y-m-d H:i:s', strtotime('-' . (int)$old . ' days'));
         $where = $all ? '' : ' WHERE `date_add` < "' . pSQL($date) . '"';
 
-        return Db::getInstance()->execute('DELETE FROM `' . _DB_PREFIX_ . 'jb_relprod_log` ' . $where . ';');
+        return DB::getInstance()->execute('DELETE FROM `' . _DB_PREFIX_ . 'jb_relprod_log` ' . $where . ';');
     }
 }
