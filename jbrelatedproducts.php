@@ -45,7 +45,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
         $this->name = 'jbrelatedproducts';
         $this->tab = 'front_office_features';
         $this->author = 'Jonas Burneika';
-        $this->version = '1.0.0';
+        $this->version = '1.1.0';
 
         $this->bootstrap = true;
         parent::__construct();
