@@ -99,7 +99,7 @@ class AdminJbRelatedProductsSettingsController extends ModuleAdminController
                     ),
                     $this->module->prefix . 'RELATION_APPEND' => array(
                         'title' => $this->trans('Append product by generic settings', [], 'Modules.JbRelatedProducts.Admin'),
-                        'desc' => $this->trans('If product has not manually selected related products, use generic products, by preselected criteria', [], 'Modules.JbRelatedProducts.Admin'),
+                        'desc' => $this->trans('If manually selected less than desired number, append missing amount by generic settings', [], 'Modules.JbRelatedProducts.Admin'),
                         'type' => 'bool',
                         'tab' => 'other',
                     ),

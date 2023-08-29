@@ -11,10 +11,13 @@ class JbRelatedProductsRelationShip
 
     private $module;
 
+    public $limit;
+
     public function __construct()
     {
         $this->module = Module::getInstanceByName('jbrelatedproducts');
         $this->context = Context::getContext();
+        $this->limit = (int)Configuration::get($this->module->prefix . 'PRODUCTS_QUANTITY');
     }
 
     /**
@@ -26,12 +29,11 @@ class JbRelatedProductsRelationShip
      * The result is limited to a specified number of entities.
      *
      * @param int $idProduct The product ID for which related products are to be retrieved.
-     * @param int $limit The maximum number of related products to be returned.
      * @return array|false An array of related product IDs or `false` if an error occurs.
      *
      * DISCLAIMER: Description was written with ChatGPT
      */
-    public static function getRelatedProducts(int $idProduct, int $limit): array|false
+    public function getRelatedProducts(int $idProduct): array|false
     {
         $sql = '
         SELECT 
@@ -39,14 +41,17 @@ class JbRelatedProductsRelationShip
                 WHEN id_product1 = "' . (int)$idProduct . '" 
                 THEN id_product2
                 ELSE id_product1
-            END AS related_id_product
+            END AS id_product
         FROM `' . _DB_PREFIX_ . 'jb_relprod_relationships` 
         WHERE 
             `id_product1` =  "' . (int)$idProduct . '" OR 
-            `id_product2` =  "' . (int)$idProduct . '"
-        LIMIT ' . (int)$limit . ';';
+            `id_product2` =  "' . (int)$idProduct . '"';
 
-        return DB::getInstance()->execute($sql);
+        if ($this->limit) {
+            $sql .= ' LIMIT ' . (int)$this->limit;
+        }
+
+        return DB::getInstance()->executeS($sql);
     }
 
 
@@ -100,18 +105,18 @@ class JbRelatedProductsRelationShip
         $translator = $context->getTranslator();
 
         $dbInstance = DB::getInstance();
-        if($dbInstance->execute('
+        if ($dbInstance->execute('
             DELETE 
             FROM `' . _DB_PREFIX_ . 'jb_relprod_relationships`
             WHERE 
-                `id_product1` = '.(int) $idProduct.' OR 
-                id_product2 = '.(int) $idProduct.';'
+                `id_product1` = ' . (int)$idProduct . ' OR 
+                id_product2 = ' . (int)$idProduct . ';'
         )) {
             JbRelatedProductsLog::logSuccess(
                 $translator->trans('Deleted relationship with Product ID:%s',
-                ['%s' => $idProduct],
-                'Modules.JbRelatedProducts.RelationShip'
-            ), $idProduct);
+                    ['%s' => $idProduct],
+                    'Modules.JbRelatedProducts.RelationShip'
+                ), $idProduct);
             return true;
         } else {
             JbRelatedProductsLog::logError(
@@ -128,35 +133,29 @@ class JbRelatedProductsRelationShip
     }
 
 
-    public function getRelatedProductsBySettings($idProduct)
+    public function getRelatedProductsBySettings($idProduct, $usedIds, $limit)
     {
         $sql = new DbQuery();
         $sql->select('p.`id_product`');
         $sql->from('product', 'p');
         $sql->join(Shop::addSqlAssociation('product', 'p'));
-        $this->setResultLimit($sql);
+        $this->setResultLimit($sql, $limit);
         $this->setWhereCategory($sql, $idProduct);
         $this->setWhereDefaultCategory($sql, $idProduct);
         $this->setWhereManufacturer($sql, $idProduct);
         $this->setWhereSupplier($sql, $idProduct);
         $this->setWhereFeatures($sql, $idProduct);
-        $sql->where('p.`id_product` != ' . $idProduct);
+        $sql->where('p.`id_product` NOT IN (' . implode(',', $usedIds) . ')');
+        $sql->where('product_shop.`active` = "1"');
+        $sql->where('product_shop.`available_for_order` = "1"');
         $sql->groupBy('p.`id_product`');
 
-        $result = Db::getInstance()->executeS($sql);
-
-        if (!$result) {
-            return false;
-        }
-        return $this->getAssembledProducts($result);
+        return Db::getInstance()->executeS($sql);
     }
 
 
-    private function setResultLimit(&$sql)
+    private function setResultLimit(&$sql, $limit)
     {
-
-        $limit = (int)Configuration::get($this->module->prefix . 'PRODUCTS_QUANTITY');
-
         if ($limit) {
             $sql->limit($limit);
         }
@@ -224,6 +223,11 @@ class JbRelatedProductsRelationShip
 
             $sql->where('p.`id_product` in (' . $featureSql->__toString() . ')');
         }
+    }
+
+    public function assembleProducts($products)
+    {
+        return $this->getAssembledProducts($products);
     }
 
     private function getAssembledProducts($products)

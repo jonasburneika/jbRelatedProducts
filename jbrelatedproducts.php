@@ -262,14 +262,24 @@ class JbRelatedProducts extends Module implements WidgetInterface
         return false;
     }
 
-    private function getRelatedProducts($idProduct)
+    private function getRelatedProducts($idProduct): array
     {
         $relationShip = new JbRelatedProductsRelationShip();
-        return $relationShip->getRelatedProductsBySettings($idProduct);
+        $productArray = $relationShip->getRelatedProducts($idProduct);
+        $assignedProductsAmount = count($productArray);
+
+        if (Configuration::get($this->prefix . 'RELATION_APPEND') && $assignedProductsAmount < $relationShip->limit) {
+            $usedIds = array_merge(array_column($productArray, 'id_product'), [(int)$idProduct]);
+            $limit = $relationShip->limit - $assignedProductsAmount;
+            $appendedProducts = $relationShip->getRelatedProductsBySettings($idProduct, $usedIds, $limit);
+            $productArray = array_merge($productArray, $appendedProducts);
+        }
+
+        return $relationShip->assembleProducts($productArray);
     }
 
 
-    private function getTemplate($hookName)
+    private function getTemplate($hookName): string
     {
         switch ($hookName) {
             case 'displayReassurance':

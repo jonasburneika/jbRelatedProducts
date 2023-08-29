@@ -82,7 +82,6 @@ class AdminJbRelatedProductsRelationShipsController extends ModuleAdminControlle
             )
         ';
 
-        $this->list_simple_header = true;
         $this->_orderBy = 'a!date_upd';
         $this->_orderWay = 'desc';
 
