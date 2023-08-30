@@ -33,7 +33,7 @@ class JbRelatedProductsRelationShip
      *
      * DISCLAIMER: Description was written with ChatGPT
      */
-    public function getRelatedProducts(int $idProduct): array|false
+    public function getRelatedProducts(int $idProduct)
     {
         $sql = '
         SELECT 
@@ -68,7 +68,7 @@ class JbRelatedProductsRelationShip
      *
      * DISCLAIMER: Description was written with ChatGPT
      */
-    public static function setRelatedProducts(int $idProduct, array|int $relatedProducts): void
+    public static function setRelatedProducts(int $idProduct, $relatedProducts): void
     {
         if (empty($relatedProducts)) {
             return;
@@ -165,64 +165,71 @@ class JbRelatedProductsRelationShip
     private function setWhereCategory(&$sql, $idProduct)
     {
 
-        $shareCategory = (bool)Configuration::get($this->module->prefix . 'RELATION_CATEGORY');
+        $enable = Configuration::get($this->module->prefix . 'RELATION_CATEGORY');
+        if (!$enable) {
+            return;
+        }
 
-        if ($shareCategory) {
-            $categories = Product::getProductCategories($idProduct);
-            if (!empty($categories)) {
-                $sql->join('JOIN `' . _DB_PREFIX_ . 'category_product` cp ON cp.`id_product` = p.`id_product`');
-                $sql->where('cp.`id_category` in (' . implode(',', $categories) . ')');
-            }
+        $categories = Product::getProductCategories($idProduct);
+        if (!empty($categories)) {
+            $sql->join('JOIN `' . _DB_PREFIX_ . 'category_product` cp ON cp.`id_product` = p.`id_product`');
+            $sql->where('cp.`id_category`' . ($enable == -1 ? 'NOT' : '') . ' in (' . implode(',', $categories) . ')');
         }
     }
 
     private function setWhereDefaultCategory(&$sql, $idProduct)
     {
-
-        $shareDefaultCategory = (bool)Configuration::get($this->module->prefix . 'RELATION_DEFAULT_CATEGORY');
-
-        if ($shareDefaultCategory) {
-            $sql->join('JOIN `' . _DB_PREFIX_ . 'product` pc ON p.`id_category_default` = pc.`id_category_default`');
-            $sql->where('pc.`id_product` = ' . (int)$idProduct);
+        $enable = Configuration::get($this->module->prefix . 'RELATION_DEFAULT_CATEGORY');
+        if (!$enable) {
+            return;
         }
+
+        $sql->join('JOIN `' . _DB_PREFIX_ . 'product` pc ON p.`id_category_default` ' . ($enable == -1 ? '!=' : '=') . ' pc.`id_category_default`');
+        $sql->where('pc.`id_product` = ' . (int)$idProduct);
+
     }
 
     private function setWhereManufacturer(&$sql, $idProduct)
     {
 
-        $shareManufacturer = (bool)Configuration::get($this->module->prefix . 'RELATION_MANUFACTURER');
-
-        if ($shareManufacturer) {
-            $sql->join('JOIN `' . _DB_PREFIX_ . 'product` pm ON p.`id_manufacturer` = pm.`id_manufacturer`');
-            $sql->where('pm.`id_product` = ' . (int)$idProduct . ' and pm.`id_manufacturer` != "0"');
+        $enable = Configuration::get($this->module->prefix . 'RELATION_MANUFACTURER');
+        if (!$enable) {
+            return;
         }
+
+        $sql->join('JOIN `' . _DB_PREFIX_ . 'product` pm ON p.`id_manufacturer` ' . ($enable == -1 ? '!=' : '=') . ' pm.`id_manufacturer`');
+        $sql->where('pm.`id_product` = ' . (int)$idProduct . ' and pm.`id_manufacturer` != "0"');
+
     }
 
     private function setWhereSupplier(&$sql, $idProduct)
     {
 
-        $shareSupplier = (bool)Configuration::get($this->module->prefix . 'RELATION_SUPPLIERS');
-
-        if ($shareSupplier) {
-            $sql->join('JOIN `' . _DB_PREFIX_ . 'product` psu ON p.`id_supplier` = psu.`id_supplier`');
-            $sql->where('psu.`id_product` = ' . (int)$idProduct . ' and psu.`id_supplier` != "0"');
+        $enable = Configuration::get($this->module->prefix . 'RELATION_SUPPLIERS');
+        if (!$enable) {
+            return;
         }
+
+        $sql->join('JOIN `' . _DB_PREFIX_ . 'product` psu ON p.`id_supplier` ' . ($enable == -1 ? '!=' : '=') . ' psu.`id_supplier`');
+        $sql->where('psu.`id_product` = ' . (int)$idProduct . ' and psu.`id_supplier` != "0"');
+
     }
 
     private function setWhereFeatures(&$sql, $idProduct)
     {
-
-        $shareFeatures = (bool)Configuration::get($this->module->prefix . 'RELATION_FEATURES');
-
-        if ($shareFeatures) {
-            $featureSql = new DbQuery();
-            $featureSql->select('fp2.id_product');
-            $featureSql->FROM('feature_product', 'fp1');
-            $featureSql->join('JOIN `' . _DB_PREFIX_ . 'feature_product` fp2 ON fp2.`id_feature_value` = fp1.`id_feature_value`');
-            $featureSql->where('fp1.`id_product` = ' . (int)$idProduct);
-
-            $sql->where('p.`id_product` in (' . $featureSql->__toString() . ')');
+        $enable = Configuration::get($this->module->prefix . 'RELATION_FEATURES');
+        if (!$enable) {
+            return;
         }
+
+        $featureSql = new DbQuery();
+        $featureSql->select('fp2.id_product');
+        $featureSql->FROM('feature_product', 'fp1');
+        $featureSql->join('JOIN `' . _DB_PREFIX_ . 'feature_product` fp2 ON fp2.`id_feature_value` ' . ($enable == -1 ? '!=' : '=') . ' fp1.`id_feature_value`');
+        $featureSql->where('fp1.`id_product` = ' . (int)$idProduct);
+
+        $sql->where('p.`id_product` in (' . $featureSql->__toString() . ')');
+
     }
 
     public function assembleProducts($products)

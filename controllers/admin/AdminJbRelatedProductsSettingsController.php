@@ -42,6 +42,18 @@ class AdminJbRelatedProductsSettingsController extends ModuleAdminController
 
     private function initOptions()
     {
+        $options = [
+            [
+                'id_option' => -1,
+                'name' => $this->l('Exclude'),
+            ], [
+                'id_option' => 0,
+                'name' => $this->l('Ignore'),
+            ], [
+                'id_option' => 1,
+                'name' => $this->l('Include'),
+            ],
+        ];
         $this->fields_options = array(
             'general' => array(
                 'title' => $this->l('Related products settings'),
@@ -59,31 +71,46 @@ class AdminJbRelatedProductsSettingsController extends ModuleAdminController
                     $this->module->prefix . 'RELATION_CATEGORY' => array(
                         'title' => $this->trans('Same Category', [], 'Modules.JbRelatedProducts.Admin'),
                         'desc' => $this->trans('Display products, which shares at least one category.', [], 'Modules.JbRelatedProducts.Admin'),
-                        'type' => 'bool',
+                        'cast' => 'intval',
+                        'type' => 'select',
+                        'list' => $options,
+                        'identifier' => 'id_option',
                         'tab' => 'relation',
                     ),
                     $this->module->prefix . 'RELATION_DEFAULT_CATEGORY' => array(
                         'title' => $this->trans('Same Default Category', [], 'Modules.JbRelatedProducts.Admin'),
                         'desc' => $this->trans('Display products, which are from same default category.', [], 'Modules.JbRelatedProducts.Admin'),
-                        'type' => 'bool',
+                        'cast' => 'intval',
+                        'type' => 'select',
+                        'list' => $options,
+                        'identifier' => 'id_option',
                         'tab' => 'relation',
                     ),
                     $this->module->prefix . 'RELATION_FEATURES' => array(
                         'title' => $this->trans('Same Features', [], 'Modules.JbRelatedProducts.Admin'),
                         'desc' => $this->trans('Display products, which has at least one matching feature.', [], 'Modules.JbRelatedProducts.Admin'),
-                        'type' => 'bool',
+                        'cast' => 'intval',
+                        'type' => 'select',
+                        'list' => $options,
+                        'identifier' => 'id_option',
                         'tab' => 'relation',
                     ),
                     $this->module->prefix . 'RELATION_MANUFACTURER' => array(
                         'title' => $this->trans('Same Manufacturer', [], 'Modules.JbRelatedProducts.Admin'),
                         'desc' => $this->trans('Display products, which are from same manufacturer.', [], 'Modules.JbRelatedProducts.Admin'),
-                        'type' => 'bool',
+                        'cast' => 'intval',
+                        'type' => 'select',
+                        'list' => $options,
+                        'identifier' => 'id_option',
                         'tab' => 'relation',
                     ),
                     $this->module->prefix . 'RELATION_SUPPLIERS' => array(
                         'title' => $this->trans('Same Supplier', [], 'Modules.JbRelatedProducts.Admin'),
                         'desc' => $this->trans('Display products, which are supplied by same Supplier.', [], 'Modules.JbRelatedProducts.Admin'),
-                        'type' => 'bool',
+                        'cast' => 'intval',
+                        'type' => 'select',
+                        'list' => $options,
+                        'identifier' => 'id_option',
                         'tab' => 'relation',
                     ),
                     $this->module->prefix . 'PRODUCTS_LOG_DAYS' => array(
@@ -116,7 +143,7 @@ class AdminJbRelatedProductsSettingsController extends ModuleAdminController
         $this->page_header_toolbar_btn['instructions'] = array(
             'href' => 'https://r.mtdv.me/videos/F0hYupeByo',
             'desc' => $this->l('Instructions'),
-            'icon' => 'icon icon-book',
+            'icon' => 'process-icon-envelope',
             'target' => '_blank'
         );
 
