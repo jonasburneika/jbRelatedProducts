@@ -258,11 +258,21 @@ class JbRelatedProducts extends Module implements WidgetInterface
         if ($id_product) {
             return [
                 'id_product' => $id_product,
-                'cache_id' => $this->getCacheId($this->name . '|' . $id_product . '|' . $hookName),
+                'cache_id' => $this->getCacheId($this->generateCacheId($id_product, $hookName)),
             ];
         }
 
         return false;
+    }
+
+    private function generateCacheId($idProduct, $hookName)
+    {
+        $cacheId = $this->name . '|' . $idProduct . '|' . $hookName;
+        $values = [];
+        foreach ($this->configurations as $name => $value) {
+            $values[] = Tools::getValue($this->prefix . $name);
+        }
+        return $cacheId. implode('|', $values);
     }
 
     private function getRelatedProducts($idProduct): array
