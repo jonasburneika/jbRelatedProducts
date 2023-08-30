@@ -207,8 +207,11 @@ class JbRelatedProducts extends Module implements WidgetInterface
             $allowedExceptions = [$allowedExceptions];
         }
         $allExceptions = [];
-        $controllers = Dispatcher::getControllersPhpselfList(_PS_FRONT_CONTROLLER_DIR_);
-
+        if (Tools::version_compare(_PS_VERSION_, '8.0.0', '>')) {
+            $controllers = Dispatcher::getControllersPhpselfList(_PS_FRONT_CONTROLLER_DIR_);
+        } else {
+            $controllers = Dispatcher::getControllers(_PS_FRONT_CONTROLLER_DIR_);
+        }
         asort($controllers);
         if ($controllers) {
             foreach ($controllers as $k => $v) {
