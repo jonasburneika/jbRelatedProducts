@@ -66,7 +66,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
         $this->description = $this->trans('Add a block on every product page that displays similar products based on configurations', [], 'Modules.JbRelatedProducts.Admin');
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
 
-        $this->templateLocation = 'module:jbrelatedproducts/views/templates/hook/';
+        $this->templateLocation = 'module:jbrelatedproducts/views/templates/';
     }
 
 
@@ -296,11 +296,15 @@ class JbRelatedProducts extends Module implements WidgetInterface
     {
         switch ($hookName) {
             case 'displayReassurance':
-                return $this->templateLocation . $hookName . '.tpl';
+                return $this->templateLocation .'hook/'. $hookName . '.tpl';
             case 'displayRelatedProducts':
             case 'displayFooterProduct':
             default:
-                return $this->templateLocation . 'displayRelatedProducts.tpl';
+                return $this->templateLocation .'hook/'. 'displayRelatedProducts.tpl';
+            case 'displayAdminProductsOptionsStepTop':
+            case 'displayAdminProductsExtra':
+            case 'displayAdminProductsOptionsStepBottom':
+                return $this->templateLocation .'admin/'. 'displayAdminRelatedProducts.tpl';
         }
 
     }
