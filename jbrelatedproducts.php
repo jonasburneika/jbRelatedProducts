@@ -65,7 +65,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
 
         $this->displayName = $this->trans('Related product products', [], 'Modules.JbRelatedProducts.Admin');
         $this->description = $this->trans('Add a block on every product page that displays similar products based on configurations', [], 'Modules.JbRelatedProducts.Admin');
-        $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => '1.7.8.0'];
+        $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => '1.7.8.9'];
 
         $this->templateLocation = 'module:jbrelatedproducts/views/templates/';
     }
