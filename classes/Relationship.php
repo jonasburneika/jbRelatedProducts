@@ -77,7 +77,8 @@ class JbRelatedProductsRelationShip
             $relatedProducts = [$relatedProducts];
         }
         $data = [];
-
+        $context = Context::getContext();
+        $translator = $context->getTranslator();
         foreach ($relatedProducts as $relatedProduct) {
             $data[] = [
                 'id_product1' => (int)$idProduct,
@@ -87,8 +88,6 @@ class JbRelatedProductsRelationShip
         try {
             DB::getInstance()->insert('jb_relprod_relationships', $data);
         } catch (Exception $e) {
-            $context = Context::getContext();
-            $translator = $context->getTranslator();
             JbRelatedProductsLog::logError(
                 $translator->trans('Unable to set related products. Get error "%s"',
                     ['%s' => $e->getMessage()],
@@ -96,7 +95,15 @@ class JbRelatedProductsRelationShip
                 ),
                 $idProduct
             );
+            return;
         }
+        JbRelatedProductsLog::logInfo(
+            $translator->trans('Assigned new related products',
+                [],
+                'Modules.JbRelatedProducts.RelationShip'
+            ),
+            $idProduct
+        );
     }
 
     public static function removeRelationShip($idProduct)

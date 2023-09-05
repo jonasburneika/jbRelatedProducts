@@ -1,5 +1,6 @@
 <?php
 
+use PrestaShop\PrestaShop\Adapter\Product\ProductDataProvider;
 use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
 
 if (!defined('_PS_VERSION_')) {
@@ -33,8 +34,8 @@ class JbRelatedProducts extends Module implements WidgetInterface
             'position' => 1
         ],
         'displayAdminProductsOptionsStepBottom' => [],
-        'displayAdminProductsOptionsStepTop' => [],
-        'DisplayAdminProductsExtra' => []
+        'displayBackOfficeHeader' => [],
+        'actionProductSave' => [],
     ];
 
     public $prefix = 'JB_RELATED_PRODUCTS_';
@@ -258,7 +259,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
         if ($id_product) {
             return [
                 'id_product' => $id_product,
-                'cache_id' => $this->getCacheId($this->generateCacheId($id_product, $hookName)),
+                'cache_id' => $this->getCacheId($this->generateCacheId($id_product, $hookName) . time()),
             ];
         }
 
@@ -272,7 +273,7 @@ class JbRelatedProducts extends Module implements WidgetInterface
         foreach ($this->configurations as $name => $value) {
             $values[] = Tools::getValue($this->prefix . $name);
         }
-        return $cacheId. implode('|', $values);
+        return $cacheId . implode('|', $values);
     }
 
     private function getRelatedProducts($idProduct): array
@@ -296,17 +297,63 @@ class JbRelatedProducts extends Module implements WidgetInterface
     {
         switch ($hookName) {
             case 'displayReassurance':
-                return $this->templateLocation .'hook/'. $hookName . '.tpl';
+                return $this->templateLocation . 'hook/' . $hookName . '.tpl';
             case 'displayRelatedProducts':
             case 'displayFooterProduct':
             default:
-                return $this->templateLocation .'hook/'. 'displayRelatedProducts.tpl';
-            case 'displayAdminProductsOptionsStepTop':
-            case 'displayAdminProductsExtra':
-            case 'displayAdminProductsOptionsStepBottom':
-                return $this->templateLocation .'admin/'. 'displayAdminRelatedProducts.tpl';
+                return $this->templateLocation . 'hook/' . 'displayRelatedProducts.tpl';
         }
+    }
 
+    public function hookDisplayBackOfficeHeader()
+    {
+        $this->context->controller->addCSS($this->_path . 'views/css/back.css', 'all');
+    }
+    public function hookActionProductSave()
+    {
+        $idProduct = Tools::getValue('id_product');
+        $relatedProducts = Tools::getValue('jb_related_products');
+        if ($idProduct && isset($relatedProducts['data']) && !empty($relatedProducts['data'])){
+            JbRelatedProductsRelationShip::removeRelationShip($idProduct);
+            JbRelatedProductsRelationShip::setRelatedProducts($idProduct, $relatedProducts['data']);
+        }
+    }
+    
+    public function hookDisplayAdminProductsOptionsStepBottom($params)
+    {
+        $translator = Context::getContext()->getTranslator();
+        $relationShip = new JbRelatedProductsRelationShip();
+        $relatedProducts = $relationShip->getRelatedProducts($params['id_product']);
+        $products = [];
+        if (!empty($relatedProducts)){
+            foreach ($relatedProducts as $relatedProduct) {
+                $product = (new ProductDataProvider())->getProduct($relatedProduct['id_product']);
+                $products[] =[
+                    'id' => $relatedProduct['id_product'],
+                    'name' => reset($product->name) . ' (ref:' . $product->reference . ')',
+                    'image' => $product->image,
+                ];
+            }
+        }
+        $this->smarty->assign([
+            'remote_url' => Context::getContext()->link->getLegacyAdminLink(
+                'AdminProducts',
+                true,
+                [
+                    'ajax' => 1,
+                    'disableCombination' => 1,
+                    'action' => 'productsList',
+                    'forceJson' => 1,
+                    'excludeVirtuals' => 0,
+                    'exclude_packs' => 0,
+                    'limit' => 20
+                ]
+            ) . '&q=%QUERY',
+            'placeholder' => $translator->trans('Search for a product', [], 'Admin.Catalog.Help'),
+            'products' => $products
+        ]);
+
+        return $this->fetch($this->templateLocation . 'admin/displayAdminRelatedProducts.tpl');
     }
 
     public function renderWidget($hookName, array $configuration)
